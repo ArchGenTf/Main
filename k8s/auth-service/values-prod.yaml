@@ -1,0 +1,37 @@
+replicaCount: 2
+
+image:
+  repository: acrarchgenprod.azurecr.io/auth-service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8001
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+keyvault:
+  enabled: true
+  name: "kv-archgen-prod"
+  clientId: "00000000-0000-0000-0000-000000000000"
+  tenantId: "00000000-0000-0000-0000-000000000000"
+  secrets:
+    - name: "jwt-secret"
+      alias: "JWT_SECRET"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

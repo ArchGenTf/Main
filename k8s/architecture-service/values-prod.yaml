@@ -1,0 +1,39 @@
+replicaCount: 2
+
+image:
+  repository: acrarchgenprod.azurecr.io/architecture-service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8003
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+keyvault:
+  enabled: true
+  name: "kv-archgen-prod"
+  clientId: "00000000-0000-0000-0000-000000000000"
+  tenantId: "00000000-0000-0000-0000-000000000000"
+  secrets:
+    - name: "openai-api-key"
+      alias: "OPENAI_API_KEY"
+    - name: "deepseek-api-key"
+      alias: "DEEPSEEK_API_KEY"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
