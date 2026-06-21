@@ -50,9 +50,8 @@ To run this pipeline successfully, you must configure the following **Repository
 3. Choose the target channel, authorize, and copy the Webhook URL.
 4. Save this as `SLACK_WEBHOOK` in your repository secrets.
 
-### 4. SonarQube & Snyk Secrets
+### 4. SonarCloud & Snyk Secrets
 *Optional. Configure these to enable static code security analysis and library scanning.*
 - `SONAR_TOKEN`: API token generated from SonarCloud (`My Account` -> `Security`).
-- `SONAR_URL`: SonarQube host URL (defaults to `https://sonarcloud.io`).
 - `SONAR_KEY`: (Optional) Custom Sonar project key (defaults to `ArchGenTf_<service-name>`).
 - `SNYK_TOKEN`: Snyk API token generated from Snyk account settings.

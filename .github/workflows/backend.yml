@@ -18,8 +18,6 @@ on:
     secrets:
       SONAR_TOKEN:
         required: false
-      SONAR_URL:
-        required: false
       SONAR_KEY:
         required: false
       SNYK_TOKEN:
@@ -55,25 +53,24 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           flake8 . --exclude=venv,env,.dist,__pycache__ --ignore=E501
 
-      - name: SonarQube Scan
+      - name: SonarCloud Scan
         if: ${{ secrets.SONAR_TOKEN != '' }}
-        uses: SonarSource/sonarqube-scan-action@v3
+        uses: SonarSource/sonarcloud-github-action@v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_URL || 'https://sonarcloud.io' }}
         with:
           args: >
             -Dsonar.projectKey=${{ secrets.SONAR_KEY || format('ArchGenTf_{0}', inputs.service) }}
             -Dsonar.organization=archgentf
             -Dsonar.sources=.
 
-      - name: SonarQube Quality Gate
+      - name: SonarCloud Quality Gate
         if: ${{ secrets.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-quality-gate-action@v1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_URL || 'https://sonarcloud.io' }}
+          SONAR_HOST_URL: 'https://sonarcloud.io'
 
       - name: Setup Snyk
         if: ${{ secrets.SNYK_TOKEN != '' }}

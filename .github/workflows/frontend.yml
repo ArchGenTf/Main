@@ -18,8 +18,6 @@ on:
     secrets:
       SONAR_TOKEN:
         required: false
-      SONAR_URL:
-        required: false
       SONAR_KEY:
         required: false
       SNYK_TOKEN:
@@ -58,13 +56,12 @@ jobs:
       - name: Build Application
         run: npm run build
 
-      - name: SonarQube Scan
+      - name: SonarCloud Scan
         if: ${{ secrets.SONAR_TOKEN != '' }}
-        uses: SonarSource/sonarqube-scan-action@v3
+        uses: SonarSource/sonarcloud-github-action@v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_URL || 'https://sonarcloud.io' }}
         with:
           args: >
             -Dsonar.projectKey=${{ secrets.SONAR_KEY || format('ArchGenTf_{0}', inputs.service) }}
