@@ -72,10 +72,9 @@ To run this pipeline successfully, you must add the following **Repository Secre
 
 ---
 
-## 3. GitHub Environments Setup (Manual Approval Gate)
+## 3. Production Promotion & GitOps Release Flow
 
-For the production promotion to run, you must establish an environment in your service repository:
-1. In the service repository, navigate to `Settings` -> `Environments`.
-2. Click **New environment** and name it exactly: `production`.
-3. Check **Required reviewers** under Deployment protection rules.
-4. Specify the GitHub accounts authorized to approve production releases and click **Save**.
+This pipeline uses an automated, Git-driven release flow rather than manual environments:
+1. **Develop Deployment**: Merges to the `master` branch automatically deploy code changes to the Dev cluster (updating `values-dev.yaml` on the `dev` branch of this `Main` repo with the commit SHA tag).
+2. **Production Release**: When ready for a production release, create and publish a GitHub Release with a tag matching `v*` (e.g. `v1.0.0`) in the service repository.
+3. The promotion pipeline will automatically find the pre-built image corresponding to that commit SHA, tag it with the release tag (e.g., `v1.0.0`), and push the new tag. It will then update `values-prod.yaml` on the `master` branch of this `Main` repository with the release tag.
