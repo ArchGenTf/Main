@@ -1,14 +1,11 @@
 replicaCount: 1
-
 image:
   repository: acrarchgen.azurecr.io/frontend
   pullPolicy: IfNotPresent
-  tag: "latest"
-
+  tag: "sha-56ba2f5"
 service:
   type: ClusterIP
   port: 80
-
 ingress:
   enabled: true
   className: "azure-application-gateway"
@@ -20,7 +17,6 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
-
 resources:
   limits:
     cpu: 100m
@@ -28,7 +24,6 @@ resources:
   requests:
     cpu: 50m
     memory: 64Mi
-
 autoscaling:
   enabled: false
   minReplicas: 1
