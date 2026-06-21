@@ -11,6 +11,9 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -32,13 +35,13 @@ jobs:
           fi
 
       - name: Azure Login
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Log in to ACR
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
         run: |
           az acr login --name acrarchgen
 
@@ -82,7 +85,7 @@ jobs:
           git push origin HEAD:master
 
       - name: Send Slack Notification
-        if: always() && secrets.SLACK_WEBHOOK != ''
+        if: always() && env.SLACK_WEBHOOK != ''
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}

@@ -37,6 +37,10 @@ jobs:
   pr-checks:
     if: inputs.trigger == 'pull_request'
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -57,7 +61,7 @@ jobs:
         run: npm run build
 
       - name: SonarCloud Scan
-        if: ${{ secrets.SONAR_TOKEN != '' }}
+        if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarcloud-github-action@v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -69,13 +73,13 @@ jobs:
             -Dsonar.sources=.
 
       - name: Snyk Security Scan
-        if: ${{ secrets.SNYK_TOKEN != '' }}
+        if: ${{ env.SNYK_TOKEN != '' }}
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: Send Slack Notification
-        if: always() && secrets.SLACK_WEBHOOK != ''
+        if: always() && env.SLACK_WEBHOOK != ''
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
@@ -91,6 +95,9 @@ jobs:
   build:
     if: inputs.trigger == 'push'
     runs-on: ubuntu-latest
+    env:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -108,13 +115,13 @@ jobs:
           echo "image=${{ inputs.image }}:sha-$SHA" >> $GITHUB_OUTPUT
 
       - name: Azure Login
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Log in to ACR
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
         run: |
           REGISTRY_NAME=$(echo "${{ inputs.image }}" | cut -d'/' -f1 | cut -d'.' -f1)
           az acr login --name $REGISTRY_NAME
@@ -138,7 +145,7 @@ jobs:
           exit-code: 1
 
       - name: Push Image to Registry
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
         uses: docker/build-push-action@v5
         with:
           context: ${{ steps.context.outputs.path }}
@@ -162,7 +169,7 @@ jobs:
             }
 
       - name: Send Slack Notification
-        if: always() && secrets.SLACK_WEBHOOK != ''
+        if: always() && env.SLACK_WEBHOOK != ''
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}

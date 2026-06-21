@@ -10,6 +10,8 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -46,7 +48,7 @@ jobs:
           git push origin dev
 
       - name: Send Slack Notification
-        if: always() && secrets.SLACK_WEBHOOK != ''
+        if: always() && env.SLACK_WEBHOOK != ''
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}

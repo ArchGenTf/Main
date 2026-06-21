@@ -37,6 +37,10 @@ jobs:
   pr-checks:
     if: inputs.trigger == 'pull_request'
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -54,7 +58,7 @@ jobs:
           flake8 . --exclude=venv,env,.dist,__pycache__ --ignore=E501
 
       - name: SonarCloud Scan
-        if: ${{ secrets.SONAR_TOKEN != '' }}
+        if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarcloud-github-action@v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,25 +70,25 @@ jobs:
             -Dsonar.sources=.
 
       - name: SonarCloud Quality Gate
-        if: ${{ secrets.SONAR_TOKEN != '' }}
+        if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-quality-gate-action@v1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: 'https://sonarcloud.io'
 
       - name: Setup Snyk
-        if: ${{ secrets.SNYK_TOKEN != '' }}
+        if: ${{ env.SNYK_TOKEN != '' }}
         uses: snyk/actions/setup@master
 
       - name: Snyk Security Scan
-        if: ${{ secrets.SNYK_TOKEN != '' }}
+        if: ${{ env.SNYK_TOKEN != '' }}
         run: |
           snyk test --severity-threshold=high || echo "Snyk found vulnerabilities. Continuing PR checks..."
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: Send Slack Notification
-        if: always() && secrets.SLACK_WEBHOOK != ''
+        if: always() && env.SLACK_WEBHOOK != ''
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
@@ -100,6 +104,9 @@ jobs:
   build:
     if: inputs.trigger == 'push'
     runs-on: ubuntu-latest
+    env:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -118,13 +125,13 @@ jobs:
           echo "path=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
 
       - name: Azure Login
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Log in to ACR
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
         run: |
           REGISTRY_NAME=$(echo "${{ inputs.image }}" | cut -d'/' -f1 | cut -d'.' -f1)
           az acr login --name $REGISTRY_NAME
@@ -150,7 +157,7 @@ jobs:
           scanners: vuln
 
       - name: Push Image to Registry
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
         uses: docker/build-push-action@v5
         with:
           context: ${{ steps.context.outputs.path }}
@@ -174,7 +181,7 @@ jobs:
             }
 
       - name: Send Slack Notification
-        if: always() && secrets.SLACK_WEBHOOK != ''
+        if: always() && env.SLACK_WEBHOOK != ''
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
