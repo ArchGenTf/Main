@@ -43,22 +43,14 @@ To run this pipeline successfully, you must configure the following **Repository
    ```
 3. Copy the output JSON block and save it as `AZURE_CREDENTIALS` in your repository secrets.
 
-### 3. SMTP Email Secrets (SMTP Notification)
-*Optional. Set up these secrets to receive automated email reports on build/check outcomes.*
-- `SMTP_HOST`: The SMTP server host (e.g., `smtp.gmail.com`).
-- `SMTP_PORT`: SMTP server port (e.g. `465` or `587`).
-- `SMTP_USER`: SMTP username / sender account.
-- `SMTP_PASS`: SMTP password / App Password.
-- `NOTIFY_EMAIL`: Destination email address to receive build logs.
-
-### 4. `SLACK_WEBHOOK` (Slack Notification Webhook)
+### 3. `SLACK_WEBHOOK` (Slack Notification Webhook)
 *Optional. Set up to send status cards directly to your Slack channel.*
 1. Create a Slack App in your workspace via the [Slack API console](https://api.slack.com/apps).
 2. Activate **Incoming Webhooks** and click **Add New Webhook to Workspace**.
 3. Choose the target channel, authorize, and copy the Webhook URL.
 4. Save this as `SLACK_WEBHOOK` in your repository secrets.
 
-### 5. SonarQube & Snyk Secrets
+### 4. SonarQube & Snyk Secrets
 *Optional. Configure these to enable static code security analysis and library scanning.*
 - `SONAR_TOKEN`: API token generated from SonarCloud (`My Account` -> `Security`).
 - `SONAR_URL`: SonarQube host URL (defaults to `https://sonarcloud.io`).

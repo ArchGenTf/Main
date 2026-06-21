@@ -30,16 +30,6 @@ on:
         required: false
       SLACK_WEBHOOK:
         required: false
-      SMTP_HOST:
-        required: false
-      SMTP_PORT:
-        required: false
-      SMTP_USER:
-        required: false
-      SMTP_PASS:
-        required: false
-      NOTIFY_EMAIL:
-        required: false
 
 permissions:
   contents: read
@@ -95,34 +85,6 @@ jobs:
           snyk test --severity-threshold=high || echo "Snyk found vulnerabilities. Continuing PR checks..."
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      - name: Send Email Notification
-        if: always() && secrets.SMTP_HOST != ''
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.SMTP_HOST }}
-          server_port: ${{ secrets.SMTP_PORT }}
-          username: ${{ secrets.SMTP_USER }}
-          password: ${{ secrets.SMTP_PASS }}
-          to: ${{ secrets.NOTIFY_EMAIL }}
-          from: "CI/CD Bot <${{ secrets.SMTP_USER }}>"
-          subject: "${{ job.status == 'success' && '✅' || '❌' }} [${{ inputs.service }}] PR Checks — ${{ github.sha }}"
-          body: |
-            STATUS: ${{ job.status }}
-            Service: ${{ inputs.service }}
-            Repo: ${{ github.repository }}
-            Actor: ${{ github.actor }}
-            Event: PR
-            Commit: ${{ github.sha }}
-
-            Steps:
-            - Lint Check
-            - Sonar Scan
-            - Sonar Quality Gate
-            - Snyk Scan
-
-            Logs:
-            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Send Slack Notification
         if: always() && secrets.SLACK_WEBHOOK != ''
@@ -213,32 +175,6 @@ jobs:
               "sha_tag": "${{ steps.meta.outputs.tag }}",
               "commit_sha": "${{ github.sha }}"
             }
-
-      - name: Send Email Notification
-        if: always() && secrets.SMTP_HOST != ''
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.SMTP_HOST }}
-          server_port: ${{ secrets.SMTP_PORT }}
-          username: ${{ secrets.SMTP_USER }}
-          password: ${{ secrets.SMTP_PASS }}
-          to: ${{ secrets.NOTIFY_EMAIL }}
-          from: "CI/CD Bot <${{ secrets.SMTP_USER }}>"
-          subject: "${{ job.status == 'success' && '✅' || '❌' }} [${{ inputs.service }}] Build — ${{ steps.meta.outputs.tag }}"
-          body: |
-            STATUS: ${{ job.status }}
-            Service: ${{ inputs.service }}
-            Image: ${{ steps.meta.outputs.image }}
-            Commit: ${{ github.sha }}
-
-            Steps:
-            - Docker Build
-            - Trivy Security Scan
-            - Registry Push
-            - Repository Dispatch
-
-            Logs:
-            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Send Slack Notification
         if: always() && secrets.SLACK_WEBHOOK != ''

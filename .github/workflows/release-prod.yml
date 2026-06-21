@@ -81,24 +81,6 @@ jobs:
           git commit -m "chore(gitops): release ${RELEASE_SERVICE} -> ${RELEASE_TAG}" || echo "No changes to commit"
           git push origin HEAD:master
 
-      - name: Send Email Notification
-        if: always() && secrets.SMTP_HOST != ''
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.SMTP_HOST }}
-          server_port: ${{ secrets.SMTP_PORT }}
-          username: ${{ secrets.SMTP_USER }}
-          password: ${{ secrets.SMTP_PASS }}
-          to: ${{ secrets.NOTIFY_EMAIL }}
-          from: "CI/CD Bot <${{ secrets.SMTP_USER }}>"
-          subject: "Prod Release - ${{ env.RELEASE_SERVICE }} - ${{ job.status }}"
-          body: |
-            Release: ${{ github.event.release.tag_name }}
-            Service: ${{ env.RELEASE_SERVICE }}
-            Tag: ${{ env.RELEASE_TAG }}
-            Status: ${{ job.status }}
-            Logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
       - name: Send Slack Notification
         if: always() && secrets.SLACK_WEBHOOK != ''
         uses: rtCamp/action-slack-notify@v2
