@@ -1,0 +1,263 @@
+name: Reusable CI/CD Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        required: true
+        type: string
+        description: "Name of the microservice"
+      helm_dir:
+        required: true
+        type: string
+        description: "Name of the directory inside k8s/ in Infra repository (e.g. frontend or api-gateway)"
+      image_repository_dev:
+        required: true
+        type: string
+        description: "Full image repository for dev environment (e.g. acrarchgendev.azurecr.io/api-gateway)"
+      image_repository_prod:
+        required: true
+        type: string
+        description: "Full image repository for prod environment (e.g. acrarchgenprod.azurecr.io/api-gateway)"
+      dockerfile_path:
+        required: false
+        type: string
+        default: "./Dockerfile"
+        description: "Path to the Dockerfile"
+      smoke_test_port:
+        required: true
+        type: string
+        description: "Port exposed by the container for local smoke testing"
+      smoke_test_endpoint:
+        required: false
+        type: string
+        default: "/healthz"
+        description: "HTTP endpoint to hit for testing liveness/readiness (e.g. /healthz)"
+      lint_command:
+        required: false
+        type: string
+        default: ""
+        description: "Command to execute for lint check (e.g. 'npm run lint' or 'flake8 .')"
+    secrets:
+      SONAR_TOKEN:
+        required: false
+      SNYK_TOKEN:
+        required: false
+      AZURE_CREDENTIALS:
+        required: false
+      PAT_TOKEN:
+        required: true
+      SLACK_WEBHOOK:
+        required: false
+
+jobs:
+  ci-dev:
+    name: CI & Dev Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Lint Check
+        if: ${{ inputs.lint_command != '' }}
+        run: |
+          echo "Running custom lint check: ${{ inputs.lint_command }}"
+          ${{ inputs.lint_command }}
+
+      - name: SonarQube Cloud Scan
+        if: ${{ secrets.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=ArchGenTf_${{ inputs.service_name }}
+            -Dsonar.organization=archgentf
+            -Dsonar.sources=.
+
+      - name: Snyk Security Scan
+        if: ${{ secrets.SNYK_TOKEN != '' }}
+        uses: snyk/actions/setup@master
+
+      - name: Run Snyk Test
+        if: ${{ secrets.SNYK_TOKEN != '' }}
+        run: |
+          # Check project dependencies
+          snyk test --severity-threshold=high || echo "Snyk found vulnerabilities. Continuing CI..."
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ inputs.image_repository_dev }}:${{ github.sha }} -f ${{ inputs.dockerfile_path }} .
+
+      - name: Smoke Test Container
+        run: |
+          echo "Starting container for local smoke test..."
+          docker run -d \
+            -p ${{ inputs.smoke_test_port }}:${{ inputs.smoke_test_port }} \
+            --name smoke-test-container \
+            -e PRODUCTION_ORIGIN=http://localhost \
+            -e AUTH_SERVICE_URL=http://localhost \
+            -e PROJECT_SERVICE_URL=http://localhost \
+            -e ARCHITECTURE_SERVICE_URL=http://localhost \
+            -e MONGO_URI=mongodb://localhost:27017 \
+            -e ALLOWED_ORIGINS=http://localhost:3000 \
+            ${{ inputs.image_repository_dev }}:${{ github.sha }}
+          
+          echo "Waiting for container to initialize..."
+          sleep 10
+          
+          echo "Checking container logs:"
+          docker logs smoke-test-container
+          
+          echo "Sending HTTP health check query..."
+          curl --fail --retry 3 --retry-delay 3 http://localhost:${{ inputs.smoke_test_port }}${{ inputs.smoke_test_endpoint }}
+          
+          echo "Stopping and cleaning up container..."
+          docker stop smoke-test-container
+          docker rm smoke-test-container
+
+      - name: Trivy Container Image Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ inputs.image_repository_dev }}:${{ github.sha }}'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Azure Login
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to Dev ACR
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        run: |
+          REGISTRY_NAME=$(echo "${{ inputs.image_repository_dev }}" | cut -d'/' -f1 | cut -d'.' -f1)
+          az acr login --name $REGISTRY_NAME
+
+      - name: Push Image to Dev ACR
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        run: |
+          docker push ${{ inputs.image_repository_dev }}:${{ github.sha }}
+          docker tag ${{ inputs.image_repository_dev }}:${{ github.sha }} ${{ inputs.image_repository_dev }}:latest
+          docker push ${{ inputs.image_repository_dev }}:latest
+
+      - name: Checkout GitOps Repo (Main)
+        uses: actions/checkout@v4
+        with:
+          repository: ArchGenTf/Main
+          token: ${{ secrets.PAT_TOKEN }}
+          path: main-repo
+
+      - name: Update Dev Values Image Tag
+        run: |
+          cd main-repo
+          git fetch origin
+          if git show-ref --verify --quiet refs/remotes/origin/dev; then
+            git checkout dev
+          else
+            git checkout -b dev
+          fi
+          
+          VAL_FILE="k8s/${{ inputs.helm_dir }}/values-dev.yaml"
+          if [ -f "$VAL_FILE" ]; then
+            yq -i '.image.tag = "${{ github.sha }}"' "$VAL_FILE"
+            
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add "$VAL_FILE"
+            git commit -m "chore(gitops): update ${{ inputs.service_name }} dev tag to ${{ github.sha }}"
+            git push origin dev
+          else
+            echo "Error: File $VAL_FILE not found in Main repository."
+            exit 1
+          fi
+
+      - name: Send Slack Notification (CI/Dev)
+        if: always() && secrets.SLACK_WEBHOOK != ''
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
+          SLACK_TITLE: 'CI/Dev Pipeline - ${{ inputs.service_name }}'
+          SLACK_MESSAGE: |
+            *Service:* ${{ inputs.service_name }}
+            *Status:* ${{ job.status }}
+            *Branch:* ${{ github.ref_name }}
+            *Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>
+            *Run URL:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow Run>
+          SLACK_USERNAME: 'GitHub Actions CI/Dev'
+
+  promote-prod:
+    name: Production Promotion
+    needs: ci-dev
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Azure Login
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to Dev and Prod ACRs
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        run: |
+          DEV_REGISTRY=$(echo "${{ inputs.image_repository_dev }}" | cut -d'/' -f1 | cut -d'.' -f1)
+          PROD_REGISTRY=$(echo "${{ inputs.image_repository_prod }}" | cut -d'/' -f1 | cut -d'.' -f1)
+          az acr login --name $DEV_REGISTRY
+          az acr login --name $PROD_REGISTRY
+
+      - name: Pull from Dev ACR, Retag and Push to Prod ACR
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        run: |
+          docker pull ${{ inputs.image_repository_dev }}:${{ github.sha }}
+          docker tag ${{ inputs.image_repository_dev }}:${{ github.sha }} ${{ inputs.image_repository_prod }}:${{ github.sha }}
+          docker tag ${{ inputs.image_repository_dev }}:${{ github.sha }} ${{ inputs.image_repository_prod }}:latest
+          docker push ${{ inputs.image_repository_prod }}:${{ github.sha }}
+          docker push ${{ inputs.image_repository_prod }}:latest
+
+      - name: Checkout GitOps Repo (Main)
+        uses: actions/checkout@v4
+        with:
+          repository: ArchGenTf/Main
+          token: ${{ secrets.PAT_TOKEN }}
+          ref: master
+          path: main-repo
+
+      - name: Update Prod Values Image Tag
+        run: |
+          cd main-repo
+          VAL_FILE="k8s/${{ inputs.helm_dir }}/values-prod.yaml"
+          if [ -f "$VAL_FILE" ]; then
+            yq -i '.image.tag = "${{ github.sha }}"' "$VAL_FILE"
+            
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add "$VAL_FILE"
+            git commit -m "chore(gitops): promote ${{ inputs.service_name }} to prod tag ${{ github.sha }}"
+            git push origin master
+          else
+            echo "Error: File $VAL_FILE not found in Main repository master branch."
+            exit 1
+          fi
+
+      - name: Send Slack Notification (Prod Promotion)
+        if: always() && secrets.SLACK_WEBHOOK != ''
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
+          SLACK_TITLE: 'Production Promotion - ${{ inputs.service_name }}'
+          SLACK_MESSAGE: |
+            *Service:* ${{ inputs.service_name }}
+            *Status:* ${{ job.status }}
+            *Tag:* ${{ github.sha }}
+            *Run URL:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow Run>
+          SLACK_USERNAME: 'GitHub Actions Prod'
