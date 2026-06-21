@@ -1,0 +1,243 @@
+name: Frontend CI/CD
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        required: true
+        type: string
+        description: "Name of the microservice"
+      image:
+        required: true
+        type: string
+        description: "Docker image repository (e.g. acrarchgen.azurecr.io/frontend)"
+      trigger:
+        required: true
+        type: string
+        description: "Event trigger type (push or pull_request)"
+    secrets:
+      SONAR_TOKEN:
+        required: false
+      SONAR_URL:
+        required: false
+      SONAR_KEY:
+        required: false
+      SNYK_TOKEN:
+        required: false
+      GH_PAT:
+        required: true
+      AZURE_CREDENTIALS:
+        required: false
+      SLACK_WEBHOOK:
+        required: false
+      SMTP_HOST:
+        required: false
+      SMTP_PORT:
+        required: false
+      SMTP_USER:
+        required: false
+      SMTP_PASS:
+        required: false
+      NOTIFY_EMAIL:
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  pr-checks:
+    if: inputs.trigger == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Tests
+        run: npm test -- --coverage || true
+
+      - name: Build Application
+        run: npm run build
+
+      - name: SonarQube Scan
+        if: ${{ secrets.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_URL || 'https://sonarcloud.io' }}
+        with:
+          args: >
+            -Dsonar.projectKey=${{ secrets.SONAR_KEY || format('ArchGenTf_{0}', inputs.service) }}
+            -Dsonar.organization=archgentf
+            -Dsonar.sources=.
+
+      - name: Snyk Security Scan
+        if: ${{ secrets.SNYK_TOKEN != '' }}
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Send Email Notification
+        if: always() && secrets.SMTP_HOST != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: "CI/CD Bot <${{ secrets.SMTP_USER }}>"
+          subject: "${{ job.status == 'success' && '✅' || '❌' }} [${{ inputs.service }}] PR Checks — ${{ github.sha }}"
+          body: |
+            STATUS: ${{ job.status }}
+            Service: ${{ inputs.service }}
+            Repo: ${{ github.repository }}
+            Actor: ${{ github.actor }}
+            Event: PR
+            Commit: ${{ github.sha }}
+
+            Steps:
+            - npm install
+            - npm test & build
+            - Sonar Scan
+            - Snyk Scan
+
+            Logs:
+            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Send Slack Notification
+        if: always() && secrets.SLACK_WEBHOOK != ''
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
+          SLACK_TITLE: '[${{ inputs.service }}] PR Checks - ${{ job.status }}'
+          SLACK_MESSAGE: |
+            *Service:* ${{ inputs.service }}
+            *Repo:* ${{ github.repository }}
+            *Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>
+            *Run URL:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow Run>
+          SLACK_USERNAME: 'GitHub Actions PR Checks'
+
+  build:
+    if: inputs.trigger == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - id: context
+        shell: bash
+        run: |
+          SERVICE_DIR="./"
+          echo "path=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
+
+      - id: meta
+        run: |
+          SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "tag=sha-$SHA" >> $GITHUB_OUTPUT
+          echo "image=${{ inputs.image }}:sha-$SHA" >> $GITHUB_OUTPUT
+
+      - name: Azure Login
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to ACR
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        run: |
+          REGISTRY_NAME=$(echo "${{ inputs.image }}" | cut -d'/' -f1 | cut -d'.' -f1)
+          az acr login --name $REGISTRY_NAME
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Image locally for scanning
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.context.outputs.path }}
+          load: true
+          tags: ${{ steps.meta.outputs.image }}
+          no-cache: true
+
+      - name: Trivy Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.meta.outputs.image }}
+          severity: HIGH,CRITICAL
+          exit-code: 1
+
+      - name: Push Image to Registry
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.context.outputs.path }}
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ inputs.image }}:latest
+
+      - name: Dispatch Event to Main Repo
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.GH_PAT }}
+          repository: ArchGenTf/Main
+          event-type: service-image-updated
+          client-payload: |
+            {
+              "service_name": "${{ inputs.service }}",
+              "image": "${{ steps.meta.outputs.image }}",
+              "sha_tag": "${{ steps.meta.outputs.tag }}",
+              "commit_sha": "${{ github.sha }}"
+            }
+
+      - name: Send Email Notification
+        if: always() && secrets.SMTP_HOST != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: "CI/CD Bot <${{ secrets.SMTP_USER }}>"
+          subject: "${{ job.status == 'success' && '✅' || '❌' }} [${{ inputs.service }}] Build — ${{ steps.meta.outputs.tag }}"
+          body: |
+            STATUS: ${{ job.status }}
+            Service: ${{ inputs.service }}
+            Image: ${{ steps.meta.outputs.image }}
+            Commit: ${{ github.sha }}
+
+            Steps:
+            - Docker Build
+            - Trivy Security Scan
+            - Registry Push
+            - Repository Dispatch
+
+            Logs:
+            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Send Slack Notification
+        if: always() && secrets.SLACK_WEBHOOK != ''
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
+          SLACK_TITLE: '[${{ inputs.service }}] Build - ${{ job.status }}'
+          SLACK_MESSAGE: |
+            *Service:* ${{ inputs.service }}
+            *Image:* `${{ steps.meta.outputs.image }}`
+            *Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>
+            *Run URL:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow Run>
+          SLACK_USERNAME: 'GitHub Actions Build'

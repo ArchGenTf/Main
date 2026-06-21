@@ -1,0 +1,78 @@
+name: Deploy Dev
+
+on:
+  repository_dispatch:
+    types: [service-image-updated]
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          token: ${{ secrets.GH_PAT || github.token }}
+
+      - name: Update Helm Values
+        run: |
+          SERVICE="${{ github.event.client_payload.service_name }}"
+          TAG="${{ github.event.client_payload.sha_tag }}"
+          
+          # Map service name to helm directory
+          HELM_DIR="$SERVICE"
+          if [ "$SERVICE" = "archgen-frontend" ]; then
+            HELM_DIR="frontend"
+          fi
+          
+          VAL_FILE="k8s/$HELM_DIR/values-dev.yaml"
+          if [ -f "$VAL_FILE" ]; then
+            yq -i ".image.repository = \"acrarchgen.azurecr.io/$HELM_DIR\"" "$VAL_FILE"
+            yq -i ".image.tag = \"$TAG\"" "$VAL_FILE"
+          else
+            echo "Error: values-dev.yaml not found at $VAL_FILE"
+            exit 1
+          fi
+
+      - name: Commit & Push Changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore(gitops): deploy ${{ github.event.client_payload.service_name }} to dev with tag ${{ github.event.client_payload.sha_tag }}" || echo "No changes to commit"
+          git push origin dev
+
+      - name: Send Email Notification
+        if: always() && secrets.SMTP_HOST != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: "CI/CD Bot <${{ secrets.SMTP_USER }}>"
+          subject: "Deploy Dev - ${{ github.event.client_payload.service_name }} - ${{ job.status }}"
+          body: |
+            Service: ${{ github.event.client_payload.service_name }}
+            Image: ${{ github.event.client_payload.image }}
+            Status: ${{ job.status }}
+            Commit: ${{ github.event.client_payload.commit_sha }}
+            Logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Send Slack Notification
+        if: always() && secrets.SLACK_WEBHOOK != ''
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
+          SLACK_TITLE: 'GitOps Dev Deployment - ${{ github.event.client_payload.service_name }}'
+          SLACK_MESSAGE: |
+            *Service:* ${{ github.event.client_payload.service_name }}
+            *Tag:* `${{ github.event.client_payload.sha_tag }}`
+            *Status:* ${{ job.status }}
+            *Run URL:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Deployment Run>
+          SLACK_USERNAME: 'GitHub Actions Deploy Dev'

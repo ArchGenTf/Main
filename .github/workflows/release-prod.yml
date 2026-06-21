@@ -1,0 +1,115 @@
+name: Release Prod
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          token: ${{ secrets.GH_PAT || github.token }}
+          fetch-depth: 0
+
+      - name: Set Release Variables
+        run: |
+          TAG_NAME="${{ github.event.release.tag_name }}"
+          if [[ "$TAG_NAME" =~ ^(.+)-(v.+)$ ]]; then
+            echo "RELEASE_SERVICE=${BASH_REMATCH[1]}" >> $GITHUB_ENV
+            echo "RELEASE_TAG=${BASH_REMATCH[2]}" >> $GITHUB_ENV
+          else
+            echo "Invalid release tag format: $TAG_NAME"
+            echo "Expected format: service-name-v1.1.0 (e.g. api-gateway-v1.0.0)"
+            exit 1
+          fi
+
+      - name: Azure Login
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to ACR
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        run: |
+          az acr login --name acrarchgen
+
+      - name: Pull, Retag, and Push Release Image
+        run: |
+          SERVICE="${RELEASE_SERVICE}"
+          HELM_DIR="$SERVICE"
+          if [ "$SERVICE" = "archgen-frontend" ]; then
+            HELM_DIR="frontend"
+          fi
+          
+          IMAGE_REPOSITORY=$(yq '.image.repository' "k8s/${HELM_DIR}/values-dev.yaml")
+          SOURCE_TAG=$(yq '.image.tag' "k8s/${HELM_DIR}/values-dev.yaml")
+          
+          echo "Releasing $SERVICE (Helm Dir: $HELM_DIR)"
+          echo "Pulling dev image: ${IMAGE_REPOSITORY}:${SOURCE_TAG}"
+          
+          if ! docker pull ${IMAGE_REPOSITORY}:${SOURCE_TAG}; then
+            echo "Source image not found: ${IMAGE_REPOSITORY}:${SOURCE_TAG}"
+            echo "Release expects the dev image tag in k8s/${HELM_DIR}/values-dev.yaml to already exist in the registry."
+            exit 1
+          fi
+          
+          echo "Retagging image to: ${RELEASE_TAG} and latest"
+          docker tag ${IMAGE_REPOSITORY}:${SOURCE_TAG} ${IMAGE_REPOSITORY}:${RELEASE_TAG}
+          docker tag ${IMAGE_REPOSITORY}:${SOURCE_TAG} ${IMAGE_REPOSITORY}:latest
+          
+          echo "Pushing release tags to registry..."
+          docker push ${IMAGE_REPOSITORY}:${RELEASE_TAG}
+          docker push ${IMAGE_REPOSITORY}:latest
+          
+          echo "Updating values-prod.yaml..."
+          yq -i ".image.tag = \"${RELEASE_TAG}\"" "k8s/${HELM_DIR}/values-prod.yaml"
+
+      - name: Commit & Push Helm Updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore(gitops): release ${RELEASE_SERVICE} -> ${RELEASE_TAG}" || echo "No changes to commit"
+          git push origin HEAD:master
+
+      - name: Send Email Notification
+        if: always() && secrets.SMTP_HOST != ''
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASS }}
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: "CI/CD Bot <${{ secrets.SMTP_USER }}>"
+          subject: "Prod Release - ${{ env.RELEASE_SERVICE }} - ${{ job.status }}"
+          body: |
+            Release: ${{ github.event.release.tag_name }}
+            Service: ${{ env.RELEASE_SERVICE }}
+            Tag: ${{ env.RELEASE_TAG }}
+            Status: ${{ job.status }}
+            Logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Send Slack Notification
+        if: always() && secrets.SLACK_WEBHOOK != ''
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
+          SLACK_TITLE: 'Production Release - ${{ env.RELEASE_SERVICE }}'
+          SLACK_MESSAGE: |
+            *Release:* ${{ github.event.release.tag_name }}
+            *Service:* ${{ env.RELEASE_SERVICE }}
+            *Tag:* `${{ env.RELEASE_TAG }}`
+            *Status:* ${{ job.status }}
+            *Run URL:* <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Release Run>
+          SLACK_USERNAME: 'GitHub Actions Release Prod'
