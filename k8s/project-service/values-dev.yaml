@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: acrarchgendev.azurecr.io/project-service
+  repository: acrarchgen.azurecr.io/project-service
   pullPolicy: IfNotPresent
   tag: "latest"
 

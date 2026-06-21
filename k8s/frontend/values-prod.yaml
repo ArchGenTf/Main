@@ -1,7 +1,7 @@
 replicaCount: 2
 
 image:
-  repository: acrarchgenprod.azurecr.io/frontend
+  repository: acrarchgen.azurecr.io/frontend
   pullPolicy: IfNotPresent
   tag: "latest"
 
