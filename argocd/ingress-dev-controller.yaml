@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress-nginx-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://kubernetes.github.io/ingress-nginx'
+    chart: ingress-nginx
+    targetRevision: 4.10.1
+    helm:
+      values: |
+        controller:
+          ingressClassResource:
+            name: nginx-dev
+            enabled: true
+            default: false
+            controllerValue: "k8s.io/ingress-nginx-dev"
+          ingressClass: nginx-dev
+          scope:
+            enabled: true
+            namespace: dev
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: ingress-nginx-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
