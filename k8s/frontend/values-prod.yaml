@@ -11,7 +11,7 @@ service:
 
 ingress:
   enabled: true
-  className: "nginx"
+  className: "nginx-prod"
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:

@@ -11,12 +11,9 @@ service:
 
 ingress:
   enabled: true
-  className: "nginx"
+  className: "nginx-prod"
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
   hosts:
     - host: prod.archgen.com
       paths:

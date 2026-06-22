@@ -8,7 +8,7 @@ service:
   port: 80
 ingress:
   enabled: true
-  className: "nginx"
+  className: "nginx-dev"
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:

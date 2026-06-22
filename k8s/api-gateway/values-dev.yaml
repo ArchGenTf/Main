@@ -8,12 +8,9 @@ service:
   port: 8080
 ingress:
   enabled: true
-  className: "nginx"
+  className: "nginx-dev"
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
   hosts:
     - host: ""
       paths:
