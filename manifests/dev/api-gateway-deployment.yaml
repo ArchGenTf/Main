@@ -14,7 +14,9 @@ spec:
     metadata:
       labels:
         app: api-gateway
+        azure.workload.identity/use: "true"
     spec:
+      serviceAccountName: archgen-dev-api-gateway-sa
       containers:
         - name: api-gateway
           image: "acrarchgen.azurecr.io/api-gateway:latest"
@@ -25,17 +27,39 @@ spec:
               protocol: TCP
           env:
             - name: GATEWAY_PORT
-              value: "8080"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-api-gateway-secrets
+                  key: GATEWAY_PORT
             - name: PRODUCTION_ORIGIN
-              value: "https://api-dev.archgen.com"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-api-gateway-secrets
+                  key: PRODUCTION_ORIGIN
             - name: AUTH_SERVICE_URL
-              value: "http://archgen-dev-auth-service:8001"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-api-gateway-secrets
+                  key: AUTH_SERVICE_URL
             - name: PROJECT_SERVICE_URL
-              value: "http://archgen-dev-project-service:8002"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-api-gateway-secrets
+                  key: PROJECT_SERVICE_URL
             - name: ARCHITECTURE_SERVICE_URL
-              value: "http://archgen-dev-architecture-service:8003"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-api-gateway-secrets
+                  key: ARCHITECTURE_SERVICE_URL
             - name: ALLOWED_ORIGINS
-              value: "http://localhost:3000,http://20.51.185.99:3000"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-api-gateway-secrets
+                  key: ALLOWED_ORIGINS
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
           resources:
             limits:
               cpu: 150m
@@ -43,3 +67,10 @@ spec:
             requests:
               cpu: 75m
               memory: 128Mi
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "archgen-dev-api-gateway-keyvault-provider"

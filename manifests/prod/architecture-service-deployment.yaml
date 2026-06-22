@@ -19,7 +19,7 @@ spec:
       serviceAccountName: archgen-prod-architecture-service-sa
       containers:
         - name: architecture-service
-          image: "acrarchgenprod.azurecr.io/architecture-service:latest"
+          image: "acrarchgen.azurecr.io/architecture-service:latest"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -27,31 +27,70 @@ spec:
               protocol: TCP
           env:
             - name: OPENAI_BASE_URL
-              value: "https://praveen-archgen-resource.openai.azure.com/"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-architecture-service-secrets
+                  key: OPENAI_BASE_URL
             - name: OPENAI_MODEL
-              value: "gpt-4o-mini"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-architecture-service-secrets
+                  key: OPENAI_MODEL
             - name: OLLAMA_BASE_URL
-              value: "http://localhost:11434"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-architecture-service-secrets
+                  key: OLLAMA_BASE_URL
             - name: OLLAMA_MODEL
-              value: "qwen2.5:3b"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-architecture-service-secrets
+                  key: OLLAMA_MODEL
             - name: DEFAULT_PROVIDER
-              value: "ollama"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-architecture-service-secrets
+                  key: DEFAULT_PROVIDER
             - name: CACHE_ENABLED
-              value: "false"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-architecture-service-secrets
+                  key: CACHE_ENABLED
             - name: CACHE_TTL
-              value: "86400"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-architecture-service-secrets
+                  key: CACHE_TTL
             - name: MAX_PROVIDER_TIMEOUT
-              value: "120"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-architecture-service-secrets
+                  key: MAX_PROVIDER_TIMEOUT
             - name: MAX_ENRICHMENT_TIME
-              value: "30"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-architecture-service-secrets
+                  key: MAX_ENRICHMENT_TIME
             - name: DATABASE_NAME
-              value: "archgen_db"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-architecture-service-secrets
+                  key: DATABASE_NAME
             - name: LOG_LEVEL
-              value: "INFO"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-architecture-service-secrets
+                  key: LOG_LEVEL
             - name: ALLOWED_ORIGINS
-              value: "http://localhost:3000,http://20.51.185.99:3000"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-architecture-service-secrets
+                  key: ALLOWED_ORIGINS
             - name: ARCHGEN_GENERATION_MODE
-              value: "AI_ONLY"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-architecture-service-secrets
+                  key: ARCHGEN_GENERATION_MODE
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -78,11 +117,11 @@ spec:
               readOnly: true
           resources:
             limits:
-              cpu: 500m
-              memory: 1Gi
-            requests:
               cpu: 250m
               memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
       volumes:
         - name: secrets-store-inline
           csi:
