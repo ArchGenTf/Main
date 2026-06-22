@@ -18,7 +18,7 @@ spec:
       serviceAccountName: archgen-dev-architecture-service-sa
       containers:
         - name: architecture-service
-          image: "acrarchgendev.azurecr.io/architecture-service:latest"
+          image: "acrarchgen.azurecr.io/architecture-service:latest"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
