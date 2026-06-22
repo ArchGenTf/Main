@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: archgen-prod-auth-service
+  labels:
+    app: auth-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8001
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: auth-service
