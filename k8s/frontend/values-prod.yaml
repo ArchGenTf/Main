@@ -11,12 +11,19 @@ service:
 
 ingress:
   enabled: true
-  className: "azure-application-gateway"
+  className: "nginx-prod"
   annotations:
-    appgw.ingress.kubernetes.io/ssl-redirect: "true"
-    appgw.ingress.kubernetes.io/rule-type: "path"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:
+    - host: prod.archgen.com
+      paths:
+        - path: /
+          pathType: Prefix
     - host: frontend.archgen.com
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: archgen.com
       paths:
         - path: /
           pathType: Prefix

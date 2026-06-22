@@ -13,7 +13,13 @@ spec:
     metadata:
       labels:
         app: api-gateway
+        {{- if .Values.keyvault.enabled }}
+        azure.workload.identity/use: "true"
+        {{- end }}
     spec:
+      {{- if .Values.keyvault.enabled }}
+      serviceAccountName: {{ .Release.Name }}-api-gateway-sa
+      {{- end }}
       containers:
         - name: api-gateway
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -27,8 +33,32 @@ spec:
             - name: {{ $key }}
               value: {{ $val | quote }}
             {{- end }}
+            {{- if .Values.keyvault.enabled }}
+            {{- range .Values.keyvault.secrets }}
+            - name: {{ .alias }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-api-gateway-secrets
+                  key: {{ .alias }}
+            {{- end }}
+            {{- end }}
+          {{- if .Values.keyvault.enabled }}
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- if .Values.keyvault.enabled }}
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "{{ .Release.Name }}-api-gateway-keyvault-provider"
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

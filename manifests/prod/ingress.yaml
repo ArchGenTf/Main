@@ -8,9 +8,10 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
-  ingressClassName: nginx
+  ingressClassName: nginx-prod
   rules:
-    - http:
+    - host: prod.archgen.com
+      http:
         paths:
           - path: /api
             pathType: Prefix
@@ -26,3 +27,40 @@ spec:
                 name: archgen-prod-frontend
                 port:
                   number: 80
+    - host: archgen.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: archgen-prod-api-gateway
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: archgen-prod-frontend
+                port:
+                  number: 80
+    - host: frontend.archgen.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: archgen-prod-frontend
+                port:
+                  number: 80
+    - host: api.archgen.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: archgen-prod-api-gateway
+                port:
+                  number: 8080

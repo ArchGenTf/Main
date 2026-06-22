@@ -8,14 +8,13 @@ service:
   port: 8080
 ingress:
   enabled: true
-  className: "azure-application-gateway"
+  className: "nginx-dev"
   annotations:
-    appgw.ingress.kubernetes.io/ssl-redirect: "true"
-    appgw.ingress.kubernetes.io/rule-type: "path"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:
-    - host: api-dev.archgen.com
+    - host: ""
       paths:
-        - path: /api/
+        - path: /api
           pathType: Prefix
 resources:
   limits:
@@ -29,13 +28,25 @@ autoscaling:
   minReplicas: 1
   maxReplicas: 2
   targetCPUUtilizationPercentage: 80
-config:
-  GATEWAY_PORT: "8080"
-  PRODUCTION_ORIGIN: "https://api-dev.archgen.com"
-  AUTH_SERVICE_URL: "http://archgen-dev-auth-service:8001"
-  PROJECT_SERVICE_URL: "http://archgen-dev-project-service:8002"
-  ARCHITECTURE_SERVICE_URL: "http://archgen-dev-architecture-service:8003"
-  ALLOWED_ORIGINS: "http://localhost:3000,http://20.51.185.99:3000"
+config: {}
+keyvault:
+  enabled: true
+  name: "kvpraveen"
+  clientId: "1e9e4c11-d7fb-448f-b440-6e1ea1993bf4"
+  tenantId: "d8537334-bc24-4daf-95a8-bf4c9fb14394"
+  secrets:
+    - name: "dev-gateway-port"
+      alias: "GATEWAY_PORT"
+    - name: "dev-production-origin"
+      alias: "PRODUCTION_ORIGIN"
+    - name: "dev-auth-service-url"
+      alias: "AUTH_SERVICE_URL"
+    - name: "dev-project-service-url"
+      alias: "PROJECT_SERVICE_URL"
+    - name: "dev-architecture-service-url"
+      alias: "ARCHITECTURE_SERVICE_URL"
+    - name: "dev-allowed-origins"
+      alias: "ALLOWED_ORIGINS"
 nodeSelector: {}
 tolerations: []
 affinity: {}
