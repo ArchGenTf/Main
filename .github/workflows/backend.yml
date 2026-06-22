@@ -168,6 +168,13 @@ jobs:
             ${{ steps.meta.outputs.image }}
             ${{ inputs.image }}:latest
 
+      - name: Verify GitHub PAT Secret
+        run: |
+          if [ -z "${{ secrets.GH_PAT }}" ]; then
+            echo "Error: The secret 'GH_PAT' is empty or not configured. Please ensure you have configured a secret named 'GH_PAT' (not 'PAT_GA') in your repository or organization secrets with the value of your Personal Access Token."
+            exit 1
+          fi
+
       - name: Dispatch Event to Main Repo
         uses: peter-evans/repository-dispatch@v3
         with:
