@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: "acrachgen.azurecr.io/frontend:latest"
+          image: "acrarchgen.azurecr.io/frontend:latest"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
