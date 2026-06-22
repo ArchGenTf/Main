@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: acrarchgen.azurecr.io/api-gateway
   pullPolicy: IfNotPresent
-  tag: "sha-693f183"
+  tag: "sha-2949308"
 service:
   type: ClusterIP
   port: 8080
@@ -36,7 +36,6 @@ config:
   PROJECT_SERVICE_URL: "http://archgen-dev-project-service:8002"
   ARCHITECTURE_SERVICE_URL: "http://archgen-dev-architecture-service:8003"
   ALLOWED_ORIGINS: "http://localhost:3000,http://20.51.185.99:3000"
-
 nodeSelector: {}
 tolerations: []
 affinity: {}
