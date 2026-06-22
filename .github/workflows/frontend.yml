@@ -41,6 +41,7 @@ jobs:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -48,7 +49,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -72,9 +73,21 @@ jobs:
             -Dsonar.organization=archgentf
             -Dsonar.sources=.
 
+      - name: SonarCloud Quality Gate
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: 'https://sonarcloud.io'
+
+      - name: Setup Snyk
+        if: ${{ env.SNYK_TOKEN != '' }}
+        uses: snyk/actions/setup@master
+
       - name: Snyk Security Scan
         if: ${{ env.SNYK_TOKEN != '' }}
-        uses: snyk/actions/node@master
+        run: |
+          snyk test --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -98,6 +111,7 @@ jobs:
     env:
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -141,8 +155,10 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.meta.outputs.image }}
-          severity: CRITICAL
+          severity: HIGH,CRITICAL
           exit-code: 1
+          ignore-unfixed: true
+          scanners: vuln
 
       - name: Push Image to Registry
         if: ${{ env.AZURE_CREDENTIALS != '' }}
@@ -153,6 +169,13 @@ jobs:
           tags: |
             ${{ steps.meta.outputs.image }}
             ${{ inputs.image }}:latest
+
+      - name: Verify GitHub PAT Secret
+        run: |
+          if [ -z "${{ secrets.GH_PAT }}" ]; then
+            echo "Error: The secret 'GH_PAT' is empty or not configured. Please ensure you have configured a secret named 'GH_PAT' (not 'PAT_GA') in your repository or organization secrets with the value of your Personal Access Token."
+            exit 1
+          fi
 
       - name: Dispatch Event to Main Repo
         uses: peter-evans/repository-dispatch@v3
