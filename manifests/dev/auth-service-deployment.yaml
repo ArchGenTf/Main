@@ -27,15 +27,30 @@ spec:
               protocol: TCP
           env:
             - name: DATABASE_NAME
-              value: "archgen_db"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-auth-service-secrets
+                  key: DATABASE_NAME
             - name: JWT_ALGORITHM
-              value: "HS256"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-auth-service-secrets
+                  key: JWT_ALGORITHM
             - name: ACCESS_TOKEN_EXPIRE_MINUTES
-              value: "30"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-auth-service-secrets
+                  key: ACCESS_TOKEN_EXPIRE_MINUTES
             - name: REFRESH_TOKEN_EXPIRE_DAYS
-              value: "7"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-auth-service-secrets
+                  key: REFRESH_TOKEN_EXPIRE_DAYS
             - name: ALLOWED_ORIGINS
-              value: "http://localhost:3000,http://20.51.185.99:3000"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-auth-service-secrets
+                  key: ALLOWED_ORIGINS
             - name: JWT_SECRET_KEY
               valueFrom:
                 secretKeyRef:

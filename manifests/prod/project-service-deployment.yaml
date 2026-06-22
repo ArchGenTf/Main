@@ -19,7 +19,7 @@ spec:
       serviceAccountName: archgen-prod-project-service-sa
       containers:
         - name: project-service
-          image: "acrarchgenprod.azurecr.io/project-service:latest"
+          image: "acrarchgen.azurecr.io/project-service:latest"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -27,9 +27,15 @@ spec:
               protocol: TCP
           env:
             - name: DATABASE_NAME
-              value: "archgen_db"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-project-service-secrets
+                  key: DATABASE_NAME
             - name: ALLOWED_ORIGINS
-              value: "http://localhost:3000,http://20.51.185.99:3000"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-project-service-secrets
+                  key: ALLOWED_ORIGINS
             - name: JWT_SECRET_KEY
               valueFrom:
                 secretKeyRef:
@@ -46,11 +52,11 @@ spec:
               readOnly: true
           resources:
             limits:
-              cpu: 200m
-              memory: 256Mi
-            requests:
               cpu: 100m
               memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
       volumes:
         - name: secrets-store-inline
           csi:
