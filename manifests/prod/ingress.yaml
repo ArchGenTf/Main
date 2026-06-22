@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  namespace: dev
-  name: archgen-dev-ingress
+  namespace: prod
+  name: archgen-prod-ingress
   labels:
     app: unified-ingress
   annotations:
@@ -16,13 +16,13 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: archgen-dev-api-gateway
+                name: archgen-prod-api-gateway
                 port:
                   number: 8080
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: archgen-dev-frontend
+                name: archgen-prod-frontend
                 port:
                   number: 80

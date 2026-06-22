@@ -1,6 +1,7 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
+  namespace: prod
   name: archgen-prod-frontend-hpa
   labels:
     app: frontend

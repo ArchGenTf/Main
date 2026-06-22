@@ -1,6 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
+  namespace: dev
   name: archgen-dev-frontend
   labels:
     app: frontend
