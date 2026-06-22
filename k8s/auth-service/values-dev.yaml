@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: acrarchgen.azurecr.io/auth-service
   pullPolicy: IfNotPresent
-  tag: "sha-ef2efdb"
+  tag: "sha-d5ddeb0"
 service:
   type: ClusterIP
   port: 8001
@@ -24,7 +24,6 @@ config:
   ACCESS_TOKEN_EXPIRE_MINUTES: "30"
   REFRESH_TOKEN_EXPIRE_DAYS: "7"
   ALLOWED_ORIGINS: "http://localhost:3000,http://20.51.185.99:3000"
-
 keyvault:
   enabled: true
   name: "kvpraveen"
