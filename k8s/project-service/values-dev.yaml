@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: acrarchgen.azurecr.io/project-service
   pullPolicy: IfNotPresent
-  tag: "sha-b98bc4b"
+  tag: "sha-08adcd0"
 service:
   type: ClusterIP
   port: 8002
@@ -21,7 +21,6 @@ autoscaling:
 config:
   DATABASE_NAME: "archgen_db"
   ALLOWED_ORIGINS: "http://localhost:3000,http://20.51.185.99:3000"
-
 keyvault:
   enabled: true
   name: "kvpraveen"
