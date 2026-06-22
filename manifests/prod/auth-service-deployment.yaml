@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archgen-prod-auth-service
+  labels:
+    app: auth-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: archgen-prod-auth-service-sa
+      containers:
+        - name: auth-service
+          image: "acrarchgenprod.azurecr.io/auth-service:latest"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8001
+              protocol: TCP
+          env:
+            - name: DATABASE_NAME
+              value: "archgen_db"
+            - name: JWT_ALGORITHM
+              value: "HS256"
+            - name: ACCESS_TOKEN_EXPIRE_MINUTES
+              value: "30"
+            - name: REFRESH_TOKEN_EXPIRE_DAYS
+              value: "7"
+            - name: ALLOWED_ORIGINS
+              value: "http://localhost:3000,http://20.51.185.99:3000"
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-auth-service-secrets
+                  key: JWT_SECRET_KEY
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-prod-auth-service-secrets
+                  key: MONGO_URI
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "archgen-prod-auth-service-keyvault-provider"

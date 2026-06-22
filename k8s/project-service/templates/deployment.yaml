@@ -24,6 +24,20 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+          env:
+            {{- range $key, $val := .Values.config }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+            {{- end }}
+            {{- if .Values.keyvault.enabled }}
+            {{- range .Values.keyvault.secrets }}
+            - name: {{ .alias }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-project-service-secrets
+                  key: {{ .alias }}
+            {{- end }}
+            {{- end }}
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets-store"

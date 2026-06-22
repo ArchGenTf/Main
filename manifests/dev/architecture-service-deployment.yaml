@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archgen-dev-architecture-service
+  labels:
+    app: architecture-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: architecture-service
+  template:
+    metadata:
+      labels:
+        app: architecture-service
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: archgen-dev-architecture-service-sa
+      containers:
+        - name: architecture-service
+          image: "acrarchgendev.azurecr.io/architecture-service:latest"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8003
+              protocol: TCP
+          env:
+            - name: OPENAI_BASE_URL
+              value: "https://praveen-archgen-resource.openai.azure.com/"
+            - name: OPENAI_MODEL
+              value: "gpt-4o-mini"
+            - name: OLLAMA_BASE_URL
+              value: "http://localhost:11434"
+            - name: OLLAMA_MODEL
+              value: "qwen2.5:3b"
+            - name: DEFAULT_PROVIDER
+              value: "ollama"
+            - name: CACHE_ENABLED
+              value: "false"
+            - name: CACHE_TTL
+              value: "86400"
+            - name: MAX_PROVIDER_TIMEOUT
+              value: "120"
+            - name: MAX_ENRICHMENT_TIME
+              value: "30"
+            - name: DATABASE_NAME
+              value: "archgen_db"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: ALLOWED_ORIGINS
+              value: "http://localhost:3000,http://20.51.185.99:3000"
+            - name: ARCHGEN_GENERATION_MODE
+              value: "AI_ONLY"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-architecture-service-secrets
+                  key: OPENAI_API_KEY
+            - name: DEEPSEEK_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-architecture-service-secrets
+                  key: DEEPSEEK_API_KEY
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-architecture-service-secrets
+                  key: JWT_SECRET_KEY
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-architecture-service-secrets
+                  key: MONGO_URI
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+          resources:
+            limits:
+              cpu: 250m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "archgen-dev-architecture-service-keyvault-provider"

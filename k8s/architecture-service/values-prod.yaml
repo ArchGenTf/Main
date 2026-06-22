@@ -23,16 +23,35 @@ autoscaling:
   maxReplicas: 5
   targetCPUUtilizationPercentage: 80
 
+config:
+  OPENAI_BASE_URL: "https://praveen-archgen-resource.openai.azure.com/"
+  OPENAI_MODEL: "gpt-4o-mini"
+  OLLAMA_BASE_URL: "http://localhost:11434"
+  OLLAMA_MODEL: "qwen2.5:3b"
+  DEFAULT_PROVIDER: "ollama"
+  CACHE_ENABLED: "false"
+  CACHE_TTL: "86400"
+  MAX_PROVIDER_TIMEOUT: "120"
+  MAX_ENRICHMENT_TIME: "30"
+  DATABASE_NAME: "archgen_db"
+  LOG_LEVEL: "INFO"
+  ALLOWED_ORIGINS: "http://localhost:3000,http://20.51.185.99:3000"
+  ARCHGEN_GENERATION_MODE: "AI_ONLY"
+
 keyvault:
   enabled: true
-  name: "kv-archgen-prod"
-  clientId: "00000000-0000-0000-0000-000000000000"
-  tenantId: "00000000-0000-0000-0000-000000000000"
+  name: "kvpraveen"
+  clientId: "1e9e4c11-d7fb-448f-b440-6e1ea1993bf4"
+  tenantId: "d8537334-bc24-4daf-95a8-bf4c9fb14394"
   secrets:
-    - name: "openai-api-key"
+    - name: "prod-openai-api-key"
       alias: "OPENAI_API_KEY"
-    - name: "deepseek-api-key"
+    - name: "prod-deepseek-api-key"
       alias: "DEEPSEEK_API_KEY"
+    - name: "prod-jwt-secret"
+      alias: "JWT_SECRET_KEY"
+    - name: "prod-cosmos-connection-string"
+      alias: "MONGO_URI"
 
 nodeSelector: {}
 tolerations: []

@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archgen-prod-api-gateway
+  labels:
+    app: api-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: "acrarchgenprod.azurecr.io/api-gateway:latest"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: GATEWAY_PORT
+              value: "8080"
+            - name: PRODUCTION_ORIGIN
+              value: "https://api.archgen.com"
+            - name: AUTH_SERVICE_URL
+              value: "http://archgen-prod-auth-service:8001"
+            - name: PROJECT_SERVICE_URL
+              value: "http://archgen-prod-project-service:8002"
+            - name: ARCHITECTURE_SERVICE_URL
+              value: "http://archgen-prod-architecture-service:8003"
+            - name: ALLOWED_ORIGINS
+              value: "http://localhost:3000,http://20.51.185.99:3000"
+          resources:
+            limits:
+              cpu: 300m
+              memory: 512Mi
+            requests:
+              cpu: 150m
+              memory: 256Mi
