@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: acrarchgen.azurecr.io/architecture-service
   pullPolicy: IfNotPresent
-  tag: "sha-685ef82"
+  tag: "sha-fa730a8"
 service:
   type: ClusterIP
   port: 8003
@@ -32,7 +32,6 @@ config:
   LOG_LEVEL: "INFO"
   ALLOWED_ORIGINS: "http://localhost:3000,http://20.51.185.99:3000"
   ARCHGEN_GENERATION_MODE: "AI_ONLY"
-
 keyvault:
   enabled: true
   name: "kvpraveen"
