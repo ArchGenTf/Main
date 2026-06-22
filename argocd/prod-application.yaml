@@ -1,14 +1,113 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: archgen-prod
+  name: archgen-prod-api-gateway
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: 'https://github.com/ArchGenTf/Main.git'
     targetRevision: master
-    path: manifests/prod
+    path: k8s/api-gateway
+    helm:
+      valueFiles:
+        - values-prod.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: archgen-prod-auth-service
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/ArchGenTf/Main.git'
+    targetRevision: master
+    path: k8s/auth-service
+    helm:
+      valueFiles:
+        - values-prod.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: archgen-prod-project-service
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/ArchGenTf/Main.git'
+    targetRevision: master
+    path: k8s/project-service
+    helm:
+      valueFiles:
+        - values-prod.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: archgen-prod-architecture-service
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/ArchGenTf/Main.git'
+    targetRevision: master
+    path: k8s/architecture-service
+    helm:
+      valueFiles:
+        - values-prod.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: archgen-prod-frontend
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/ArchGenTf/Main.git'
+    targetRevision: master
+    path: k8s/frontend
+    helm:
+      valueFiles:
+        - values-prod.yaml
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: prod

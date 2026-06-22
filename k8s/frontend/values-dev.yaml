@@ -8,12 +8,11 @@ service:
   port: 80
 ingress:
   enabled: true
-  className: "azure-application-gateway"
+  className: "nginx"
   annotations:
-    appgw.ingress.kubernetes.io/ssl-redirect: "true"
-    appgw.ingress.kubernetes.io/rule-type: "path"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:
-    - host: dev.archgen.com
+    - host: ""
       paths:
         - path: /
           pathType: Prefix
