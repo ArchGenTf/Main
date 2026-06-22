@@ -48,7 +48,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -72,9 +72,21 @@ jobs:
             -Dsonar.organization=archgentf
             -Dsonar.sources=.
 
+      - name: SonarCloud Quality Gate
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: 'https://sonarcloud.io'
+
+      - name: Setup Snyk
+        if: ${{ env.SNYK_TOKEN != '' }}
+        uses: snyk/actions/setup@master
+
       - name: Snyk Security Scan
         if: ${{ env.SNYK_TOKEN != '' }}
-        uses: snyk/actions/node@master
+        run: |
+          snyk test --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -141,8 +153,10 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.meta.outputs.image }}
-          severity: CRITICAL
+          severity: HIGH,CRITICAL
           exit-code: 1
+          ignore-unfixed: true
+          scanners: vuln
 
       - name: Push Image to Registry
         if: ${{ env.AZURE_CREDENTIALS != '' }}

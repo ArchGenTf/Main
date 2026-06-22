@@ -83,7 +83,7 @@ jobs:
       - name: Snyk Security Scan
         if: ${{ env.SNYK_TOKEN != '' }}
         run: |
-          snyk test --severity-threshold=high || echo "Snyk found vulnerabilities. Continuing PR checks..."
+          snyk test --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
@@ -151,7 +151,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ steps.meta.outputs.image }}
-          severity: CRITICAL
+          severity: HIGH,CRITICAL
           exit-code: 1
           ignore-unfixed: true
           scanners: vuln
