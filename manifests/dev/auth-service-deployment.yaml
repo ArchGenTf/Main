@@ -18,7 +18,7 @@ spec:
       serviceAccountName: archgen-dev-auth-service-sa
       containers:
         - name: auth-service
-          image: "acrarchgendev.azurecr.io/auth-service:latest"
+          image: "acrachgen.azurecr.io/auth-service:latest"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
