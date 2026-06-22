@@ -27,9 +27,15 @@ spec:
               protocol: TCP
           env:
             - name: DATABASE_NAME
-              value: "archgen_db"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-project-service-secrets
+                  key: DATABASE_NAME
             - name: ALLOWED_ORIGINS
-              value: "http://localhost:3000,http://20.51.185.99:3000"
+              valueFrom:
+                secretKeyRef:
+                  name: archgen-dev-project-service-secrets
+                  key: ALLOWED_ORIGINS
             - name: JWT_SECRET_KEY
               valueFrom:
                 secretKeyRef:

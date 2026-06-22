@@ -35,13 +35,25 @@ autoscaling:
   maxReplicas: 5
   targetCPUUtilizationPercentage: 80
 
-config:
-  GATEWAY_PORT: "8080"
-  PRODUCTION_ORIGIN: "https://api.archgen.com"
-  AUTH_SERVICE_URL: "http://archgen-prod-auth-service:8001"
-  PROJECT_SERVICE_URL: "http://archgen-prod-project-service:8002"
-  ARCHITECTURE_SERVICE_URL: "http://archgen-prod-architecture-service:8003"
-  ALLOWED_ORIGINS: "http://localhost:3000,http://20.51.185.99:3000"
+config: {}
+keyvault:
+  enabled: true
+  name: "kvpraveen"
+  clientId: "1e9e4c11-d7fb-448f-b440-6e1ea1993bf4"
+  tenantId: "d8537334-bc24-4daf-95a8-bf4c9fb14394"
+  secrets:
+    - name: "prod-gateway-port"
+      alias: "GATEWAY_PORT"
+    - name: "prod-production-origin"
+      alias: "PRODUCTION_ORIGIN"
+    - name: "prod-auth-service-url"
+      alias: "AUTH_SERVICE_URL"
+    - name: "prod-project-service-url"
+      alias: "PROJECT_SERVICE_URL"
+    - name: "prod-architecture-service-url"
+      alias: "ARCHITECTURE_SERVICE_URL"
+    - name: "prod-allowed-origins"
+      alias: "ALLOWED_ORIGINS"
 
 nodeSelector: {}
 tolerations: []

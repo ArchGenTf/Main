@@ -23,12 +23,7 @@ autoscaling:
   maxReplicas: 5
   targetCPUUtilizationPercentage: 80
 
-config:
-  DATABASE_NAME: "archgen_db"
-  JWT_ALGORITHM: "HS256"
-  ACCESS_TOKEN_EXPIRE_MINUTES: "30"
-  REFRESH_TOKEN_EXPIRE_DAYS: "7"
-  ALLOWED_ORIGINS: "http://localhost:3000,http://20.51.185.99:3000"
+config: {}
 
 keyvault:
   enabled: true
@@ -36,6 +31,16 @@ keyvault:
   clientId: "1e9e4c11-d7fb-448f-b440-6e1ea1993bf4"
   tenantId: "d8537334-bc24-4daf-95a8-bf4c9fb14394"
   secrets:
+    - name: "prod-database-name"
+      alias: "DATABASE_NAME"
+    - name: "prod-jwt-algorithm"
+      alias: "JWT_ALGORITHM"
+    - name: "prod-access-token-expire-minutes"
+      alias: "ACCESS_TOKEN_EXPIRE_MINUTES"
+    - name: "prod-refresh-token-expire-days"
+      alias: "REFRESH_TOKEN_EXPIRE_DAYS"
+    - name: "prod-allowed-origins"
+      alias: "ALLOWED_ORIGINS"
     - name: "prod-jwt-secret"
       alias: "JWT_SECRET_KEY"
     - name: "prod-cosmos-connection-string"
