@@ -35,6 +35,14 @@ autoscaling:
   maxReplicas: 5
   targetCPUUtilizationPercentage: 80
 
+config:
+  GATEWAY_PORT: "8080"
+  PRODUCTION_ORIGIN: "https://api.archgen.com"
+  AUTH_SERVICE_URL: "http://archgen-prod-auth-service:8001"
+  PROJECT_SERVICE_URL: "http://archgen-prod-project-service:8002"
+  ARCHITECTURE_SERVICE_URL: "http://archgen-prod-architecture-service:8003"
+  ALLOWED_ORIGINS: "http://localhost:3000,http://20.51.185.99:3000"
+
 nodeSelector: {}
 tolerations: []
 affinity: {}

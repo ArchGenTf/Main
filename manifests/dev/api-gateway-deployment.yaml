@@ -22,6 +22,19 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+          env:
+            - name: GATEWAY_PORT
+              value: "8080"
+            - name: PRODUCTION_ORIGIN
+              value: "https://api-dev.archgen.com"
+            - name: AUTH_SERVICE_URL
+              value: "http://archgen-dev-auth-service:8001"
+            - name: PROJECT_SERVICE_URL
+              value: "http://archgen-dev-project-service:8002"
+            - name: ARCHITECTURE_SERVICE_URL
+              value: "http://archgen-dev-architecture-service:8003"
+            - name: ALLOWED_ORIGINS
+              value: "http://localhost:3000,http://20.51.185.99:3000"
           resources:
             limits:
               cpu: 150m
