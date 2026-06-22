@@ -5,7 +5,7 @@ metadata:
   labels:
     app: api-gateway
   annotations:
-    appgw.ingress.kubernetes.io/ssl-redirect: true
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
     appgw.ingress.kubernetes.io/rule-type: path
 spec:
   ingressClassName: azure-application-gateway
