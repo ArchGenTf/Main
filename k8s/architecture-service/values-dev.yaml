@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: acrarchgen.azurecr.io/architecture-service
   pullPolicy: IfNotPresent
-  tag: "sha-4e259a9"
+  tag: "sha-8ceac89"
 service:
   type: ClusterIP
   port: 8003
