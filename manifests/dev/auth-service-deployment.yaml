@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: dev
   name: archgen-dev-auth-service
   labels:
     app: auth-service
