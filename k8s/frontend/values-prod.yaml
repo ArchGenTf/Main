@@ -15,6 +15,10 @@ ingress:
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
     - host: prod.archgen.com
       paths:
         - path: /
