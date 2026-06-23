@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: acrarchgen.azurecr.io/api-gateway
   pullPolicy: IfNotPresent
-  tag: "sha-3559585"
+  tag: "sha-33a3891"
 service:
   type: ClusterIP
   port: 8080
