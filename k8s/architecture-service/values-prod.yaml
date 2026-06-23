@@ -27,8 +27,8 @@ config: {}
 
 keyvault:
   enabled: true
-  name: "kvpraveen"
-  clientId: "1e9e4c11-d7fb-448f-b440-6e1ea1993bf4"
+  name: "kvarchgenprod"
+  clientId: "6f0a06df-ee8c-4ba1-bef1-4107a8a7ddbf"
   tenantId: "d8537334-bc24-4daf-95a8-bf4c9fb14394"
   secrets:
     - name: "prod-openai-api-key"
