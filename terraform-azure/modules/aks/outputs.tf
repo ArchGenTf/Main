@@ -16,7 +16,7 @@ output "kube_config_raw" {
 }
 
 output "agic_identity_client_id" {
-  value = azurerm_kubernetes_cluster.aks.ingress_application_gateway[0].ingress_relation[0].identity_client_id
+  value = azurerm_kubernetes_cluster.aks.ingress_application_gateway[0].ingress_application_gateway_identity[0].client_id
 }
 
 output "agic_ingress_gateway_id" {
