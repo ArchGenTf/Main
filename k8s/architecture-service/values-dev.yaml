@@ -21,8 +21,8 @@ autoscaling:
 config: {}
 keyvault:
   enabled: true
-  name: "kvpraveen"
-  clientId: "1e9e4c11-d7fb-448f-b440-6e1ea1993bf4"
+  name: "kvarchgen"
+  clientId: "7d243029-8f47-4b54-800b-b9d8c2c6c70a"
   tenantId: "d8537334-bc24-4daf-95a8-bf4c9fb14394"
   secrets:
     - name: "dev-openai-api-key"
