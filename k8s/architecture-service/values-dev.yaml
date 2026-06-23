@@ -1,4 +1,4 @@
-replicaCount: 1
+replicaCount: 2
 image:
   repository: acrarchgen.azurecr.io/architecture-service
   pullPolicy: IfNotPresent
@@ -14,15 +14,15 @@ resources:
     cpu: 100m
     memory: 128Mi
 autoscaling:
-  enabled: false
-  minReplicas: 1
+  enabled: true
+  minReplicas: 2
   maxReplicas: 2
   targetCPUUtilizationPercentage: 80
 config: {}
 keyvault:
   enabled: true
-  name: "kvarchgen"
-  clientId: "7d243029-8f47-4b54-800b-b9d8c2c6c70a"
+  name: "kvarchgenprod"
+  clientId: "6f0a06df-ee8c-4ba1-bef1-4107a8a7ddbf"
   tenantId: "d8537334-bc24-4daf-95a8-bf4c9fb14394"
   secrets:
     - name: "dev-openai-api-key"

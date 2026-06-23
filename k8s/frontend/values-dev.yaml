@@ -1,4 +1,4 @@
-replicaCount: 1
+replicaCount: 2
 image:
   repository: acrarchgen.azurecr.io/frontend
   pullPolicy: IfNotPresent
@@ -24,7 +24,7 @@ resources:
     cpu: 100m
     memory: 128Mi
 autoscaling:
-  enabled: false
-  minReplicas: 1
+  enabled: true
+  minReplicas: 2
   maxReplicas: 2
   targetCPUUtilizationPercentage: 80
