@@ -1,11 +1,14 @@
-replicaCount: 2
+replicaCount: 1
+
 image:
   repository: acrarchgen.azurecr.io/auth-service
   pullPolicy: IfNotPresent
-  tag: "v1.1.0"
+  tag: "latest"
+
 service:
   type: ClusterIP
   port: 8001
+
 resources:
   limits:
     cpu: 200m
@@ -13,12 +16,15 @@ resources:
   requests:
     cpu: 100m
     memory: 128Mi
+
 autoscaling:
   enabled: true
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 80
+
 config: {}
+
 keyvault:
   enabled: true
   name: "kvarchgenprod"
@@ -39,6 +45,7 @@ keyvault:
       alias: "JWT_SECRET_KEY"
     - name: "prod-cosmos-connection-string"
       alias: "MONGO_URI"
+
 nodeSelector: {}
 tolerations: []
 affinity: {}
