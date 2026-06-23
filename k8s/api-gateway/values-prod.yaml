@@ -1,14 +1,11 @@
 replicaCount: 2
-
 image:
   repository: acrarchgen.azurecr.io/api-gateway
   pullPolicy: IfNotPresent
-  tag: "latest"
-
+  tag: "v1.2.0"
 service:
   type: ClusterIP
   port: 8080
-
 ingress:
   enabled: true
   className: "azure-application-gateway"
@@ -32,7 +29,6 @@ ingress:
       paths:
         - path: /api
           pathType: Prefix
-
 resources:
   limits:
     cpu: 300m
@@ -40,13 +36,11 @@ resources:
   requests:
     cpu: 150m
     memory: 256Mi
-
 autoscaling:
   enabled: true
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 80
-
 config: {}
 keyvault:
   enabled: true
@@ -66,7 +60,6 @@ keyvault:
       alias: "ARCHITECTURE_SERVICE_URL"
     - name: "prod-allowed-origins"
       alias: "ALLOWED_ORIGINS"
-
 nodeSelector: {}
 tolerations: []
 affinity: {}
