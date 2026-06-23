@@ -2,7 +2,7 @@ replicaCount: 2
 image:
   repository: acrarchgen.azurecr.io/frontend
   pullPolicy: IfNotPresent
-  tag: "sha-cf73257"
+  tag: "sha-a3361be"
 service:
   type: ClusterIP
   port: 80
