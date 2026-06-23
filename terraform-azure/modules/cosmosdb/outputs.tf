@@ -6,7 +6,7 @@ output "cosmos_account_name" {
   value = azurerm_cosmosdb_account.cosmos.name
 }
 
-output "cosmos_connection_strings" {
-  value     = azurerm_cosmosdb_account.cosmos.connection_strings
+output "primary_mongodb_connection_string" {
+  value     = azurerm_cosmosdb_account.cosmos.primary_mongodb_connection_string
   sensitive = true
 }
