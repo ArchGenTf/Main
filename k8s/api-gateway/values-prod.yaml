@@ -11,12 +11,10 @@ service:
 
 ingress:
   enabled: true
-  className: "nginx-prod"
+  className: "azure-application-gateway"
   annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    appgw.ingress.kubernetes.io/ssl-redirect: "false"
+    appgw.ingress.kubernetes.io/request-timeout: "300"
   hosts:
     - host: ""
       paths:

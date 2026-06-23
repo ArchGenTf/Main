@@ -6,9 +6,11 @@ metadata:
   labels:
     app: unified-ingress
   annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    kubernetes.io/ingress.class: azure/application-gateway
+    appgw.ingress.kubernetes.io/request-timeout: "60"
+    appgw.ingress.kubernetes.io/connection-draining: "true"
+    appgw.ingress.kubernetes.io/connection-draining-timeout: "30"
 spec:
-  ingressClassName: nginx-prod
   rules:
     - host: prod.archgen.com
       http:
