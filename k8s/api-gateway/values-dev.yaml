@@ -11,6 +11,7 @@ ingress:
   className: "azure-application-gateway"
   annotations:
     appgw.ingress.kubernetes.io/ssl-redirect: "false"
+    appgw.ingress.kubernetes.io/request-timeout: "300"
   hosts:
     - host: ""
       paths:
