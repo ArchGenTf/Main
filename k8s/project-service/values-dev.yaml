@@ -8,11 +8,11 @@ service:
   port: 8002
 resources:
   limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
     cpu: 100m
     memory: 128Mi
-  requests:
-    cpu: 50m
-    memory: 64Mi
 autoscaling:
   enabled: false
   minReplicas: 1
