@@ -8,11 +8,11 @@ service:
   port: 8003
 resources:
   limits:
-    cpu: 250m
-    memory: 512Mi
+    cpu: 200m
+    memory: 256Mi
   requests:
     cpu: 100m
-    memory: 256Mi
+    memory: 128Mi
 autoscaling:
   enabled: false
   minReplicas: 1
