@@ -5,7 +5,9 @@ metadata:
   labels:
     app: architecture-service
 spec:
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
       app: architecture-service
