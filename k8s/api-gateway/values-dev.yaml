@@ -17,6 +17,8 @@ ingress:
       paths:
         - path: /api
           pathType: Prefix
+        - path: /
+          pathType: Prefix
 resources:
   limits:
     cpu: 150m
