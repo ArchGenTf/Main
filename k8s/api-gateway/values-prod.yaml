@@ -1,11 +1,14 @@
 replicaCount: 2
+
 image:
   repository: acrarchgen.azurecr.io/api-gateway
   pullPolicy: IfNotPresent
-  tag: "v1.2.0"
+  tag: "latest"
+
 service:
   type: ClusterIP
   port: 8080
+
 ingress:
   enabled: true
   className: "azure-application-gateway"
@@ -13,22 +16,15 @@ ingress:
     appgw.ingress.kubernetes.io/ssl-redirect: "false"
     appgw.ingress.kubernetes.io/request-timeout: "300"
   hosts:
-    - host: ""
+    - host: printnow.space
       paths:
         - path: /api
           pathType: Prefix
-    - host: prod.archgen.com
+    - host: api.printnow.space
       paths:
         - path: /api
           pathType: Prefix
-    - host: api.archgen.com
-      paths:
-        - path: /api
-          pathType: Prefix
-    - host: archgen.com
-      paths:
-        - path: /api
-          pathType: Prefix
+
 resources:
   limits:
     cpu: 300m
@@ -36,11 +32,13 @@ resources:
   requests:
     cpu: 150m
     memory: 256Mi
+
 autoscaling:
   enabled: true
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 80
+
 config: {}
 keyvault:
   enabled: true
@@ -60,6 +58,7 @@ keyvault:
       alias: "ARCHITECTURE_SERVICE_URL"
     - name: "prod-allowed-origins"
       alias: "ALLOWED_ORIGINS"
+
 nodeSelector: {}
 tolerations: []
 affinity: {}

@@ -1,33 +1,29 @@
 replicaCount: 2
+
 image:
   repository: acrarchgen.azurecr.io/frontend
   pullPolicy: IfNotPresent
-  tag: "v1.2.0"
+  tag: "latest"
+
 service:
   type: ClusterIP
   port: 80
+
 ingress:
   enabled: true
   className: "azure-application-gateway"
   annotations:
     appgw.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:
-    - host: ""
+    - host: printnow.space
       paths:
         - path: /
           pathType: Prefix
-    - host: prod.archgen.com
+    - host: www.printnow.space
       paths:
         - path: /
           pathType: Prefix
-    - host: frontend.archgen.com
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: archgen.com
-      paths:
-        - path: /
-          pathType: Prefix
+
 resources:
   limits:
     cpu: 200m
@@ -35,6 +31,7 @@ resources:
   requests:
     cpu: 100m
     memory: 128Mi
+
 autoscaling:
   enabled: true
   minReplicas: 2
