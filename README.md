@@ -53,10 +53,10 @@ To prevent exposing static secret YAMLs in Git, secrets are stored in Azure Key 
 
 ```mermaid
 graph TD
-    AKV[Azure Key Vault: kv-archgen-dev] -->|Sync CSI| SPC[SecretProviderClass]
-    SPC -->|Mount Volume| Pod[Container: /mnt/secrets-store]
-    SPC -->|Mirror Secret| K8sSecret[Kubernetes Secret]
-    K8sSecret -->|Inject| EnvVar[Environment Variables]
+    AKV["Azure Key Vault: kv-archgen-dev"] -->|"Sync CSI"| SPC[SecretProviderClass]
+    SPC -->|"Mount Volume"| Pod["Container: /mnt/secrets-store"]
+    SPC -->|"Mirror Secret"| K8sSecret[Kubernetes Secret]
+    K8sSecret -->|"Inject"| EnvVar[Environment Variables]
 ```
 
 1. **SecretProviderClass**: Configured per service in [manifests/](file:///c:/Users/Praveen/Desktop/New%20folder/Infra/manifests). It specifies the Azure Key Vault name and maps key vault secrets to local files.
