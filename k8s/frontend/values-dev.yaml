@@ -12,7 +12,7 @@ ingress:
   annotations:
     appgw.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:
-    - host: ""
+    - host: dev.printnow.space
       paths:
         - path: /
           pathType: Prefix

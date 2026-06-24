@@ -15,19 +15,11 @@ ingress:
   annotations:
     appgw.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:
-    - host: ""
+    - host: printnow.space
       paths:
         - path: /
           pathType: Prefix
-    - host: prod.archgen.com
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: frontend.archgen.com
-      paths:
-        - path: /
-          pathType: Prefix
-    - host: archgen.com
+    - host: www.printnow.space
       paths:
         - path: /
           pathType: Prefix
