@@ -1,57 +1,93 @@
-# Main Infrastructure Repository (Modular GitOps & Reusable CI/CD)
+# Infrastructure & GitOps (Infra)
 
-This is the main infrastructure repository containing the Kubernetes Helm charts for all microservices under `k8s/` and the modular, reusable GitHub Actions pipeline.
-
----
-
-## 1. Pipeline Architecture
-
-The pipeline structure is modularized into reusable workflows and GitOps controller workflows:
-
-### A. Reusable CI/CD Workflows
-- **[backend.yml](.github/workflows/backend.yml)**: Handles standard checks for all Python backend microservices.
-- **[frontend.yml](.github/workflows/frontend.yml)**: Handles dependency caching, testing, building, and security checks for the Next.js Frontend.
-
-Both workflows handle two main triggers (via inputs):
-- **Pull Request Checks (`pr-checks` job)**: Triggered by PRs to `master`. Runs linting, SonarQube quality checks, and Snyk dependency scanning. Sends alerts on failure/success.
-- **Master Branch Builds (`build` job)**: Triggered by merges/pushes to `master`. Compiles the Docker image, runs a Trivy CVE scan, publishes the image to the registry (`acrarchgen.azurecr.io`) using a `sha-<commit-sha>` tag, dispatches an image update event to the Main repository, and alerts.
-
-### B. GitOps Controller Workflows
-- **[deploy-dev.yml](.github/workflows/deploy-dev.yml)**: Triggered by `repository_dispatch` (event: `service-image-updated`). Automatically checks out the `dev` branch, updates `k8s/<service>/values-dev.yaml` with the new tag using `yq`, commits and pushes to `dev`, and sends notifications.
-- **[release-prod.yml](.github/workflows/release-prod.yml)**: Triggered by publishing a GitHub Release (`release: [published]`). It parses the tag name (expects `<service-name>-v<version>`, e.g. `api-gateway-v1.0.0`), pulls the corresponding dev container image, retags it as the release version, pushes it to ACR, updates `values-prod.yaml` on `master` branch using `yq`, and commits/pushes to `master`.
+This repository orchestrates the infrastructure, GitOps pipelines, container orchestration, secret integration, and networking policies for the ArchGen microservices cluster. It maps out standard deployments using **Helm charts**, handles declarative delivery using **ArgoCD**, integrates with **Azure Key Vault**, and isolates development (`dev`) and production (`prod`) workloads.
 
 ---
 
-## 2. Guide to Generating Repository Secrets
+## 1. Directory Structure
 
-To run this pipeline successfully, you must configure the following **Repository Secrets** in each microservice repository (`Settings` -> `Secrets and variables` -> `Actions` -> `New repository secret`):
+The repository coordinates configurations across directories:
 
-### 1. `GH_PAT` (GitHub Personal Access Token)
-*Required. Needed to checkout/push changes to this Main repository and trigger Repository Dispatches.*
-1. Go to your GitHub profile settings: `Settings` -> `Developer settings` -> `Personal access tokens` -> `Tokens (classic)`.
-2. Click **Generate new token** -> **Generate new token (classic)**.
-3. Name it (e.g. `gitops-token`) and select the `repo` checkbox (grants full access to modify repositories).
-4. Click **Generate token** and copy it immediately.
-5. Save this as `GH_PAT` in your service repository secrets.
+```
+Infra/
+├── argocd/               # ArgoCD Application manifests (dev vs prod applications)
+├── k8s/                  # Helm charts for each microservice
+│   ├── api-gateway/      # Ingress and reverse proxy chart
+│   ├── auth-service/     # Authentication service chart (Key Vault enabled)
+│   ├── project-service/  # Project management chart (Key Vault enabled)
+│   ├── architecture-service/ # AI generator chart (Key Vault enabled)
+│   └── frontend/         # Next.js SPA chart
+├── manifests/            # Raw environment overlay manifests (dev & prod)
+│   ├── dev/              # Dev secret provider classes and deployments
+│   └── prod/             # Prod secret provider classes and deployments
+└── terraform-azure/      # Terraform modules and environments for Azure resources
+```
 
-### 2. `AZURE_CREDENTIALS` (Azure Service Principal)
-*Required. Needed to authenticate and push container images to Azure Container Registry (`acrarchgen.azurecr.io`).*
-1. Open the Azure CLI or Cloud Shell.
-2. Run:
-   ```bash
-   az ad sp create-for-rbac --name "github-actions-sp" --role contributor --scopes /subscriptions/<SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP_NAME> --sdk-auth
-   ```
-3. Copy the output JSON block and save it as `AZURE_CREDENTIALS` in your repository secrets.
+For more detailed guides, refer to:
+* [Deployment and Architecture Guide](file:///c:/Users/Praveen/Desktop/New%20folder/Infra/DEPLOYMENT_AND_ARCHITECTURE_GUIDE.md)
+* [Reading Guide](file:///c:/Users/Praveen/Desktop/New%20folder/Infra/READING_GUIDE.md)
+* [Secrets and Config Reference](file:///c:/Users/Praveen/Desktop/New%20folder/Infra/SECRETS_AND_CONFIG.md)
 
-### 3. `SLACK_WEBHOOK` (Slack Notification Webhook)
-*Optional. Set up to send status cards directly to your Slack channel.*
-1. Create a Slack App in your workspace via the [Slack API console](https://api.slack.com/apps).
-2. Activate **Incoming Webhooks** and click **Add New Webhook to Workspace**.
-3. Choose the target channel, authorize, and copy the Webhook URL.
-4. Save this as `SLACK_WEBHOOK` in your repository secrets.
+---
 
-### 4. SonarCloud & Snyk Secrets
-*Optional. Configure these to enable static code security analysis and library scanning.*
-- `SONAR_TOKEN`: API token generated from SonarCloud (`My Account` -> `Security`).
-- `SONAR_KEY`: (Optional) Custom Sonar project key (defaults to `ArchGenTf_<service-name>`).
-- `SNYK_TOKEN`: Snyk API token generated from Snyk account settings.
+## 2. Namespace Isolation (`dev` vs `prod`)
+
+To isolate development testing from client-facing production traffic, resources are deployed into separate Kubernetes Namespaces:
+
+| Attribute | Dev Namespace (`dev`) | Prod Namespace (`prod`) |
+|---|---|---|
+| **Domain** | `dev.printnow.space` | `printnow.space` |
+| **Ingress Hosts** | `dev.printnow.space` (frontend)<br>`dev.printnow.space/api` (gateway) | `printnow.space` (frontend)<br>`api.printnow.space` (gateway) |
+| **Git Branch** | `dev` | `master` |
+| **Argo Application** | `dev-application` | `prod-application` |
+| **Key Vault** | `kv-archgen-dev` | `kv-archgen-prod` |
+
+* **DNS Resolution**: Pods resolve downstream services within their own namespace using short names (e.g. `http://auth-service-sa`). This isolates database sessions, environment states, and traffic.
+* **Resource Quotas**: Development boundaries prevent potential memory/CPU leaks in development pods from exhausting resources required for production services.
+
+---
+
+## 3. Secret Management: Azure Key Vault & CSI Driver
+
+To prevent exposing static secret YAMLs in Git, secrets are stored in Azure Key Vault and mounted dynamically inside the pods using the **Secrets Store CSI Driver**:
+
+```mermaid
+graph TD
+    AKV[Azure Key Vault: kv-archgen-dev] -->|Sync CSI| SPC[SecretProviderClass]
+    SPC -->|Mount Volume| Pod[Container: /mnt/secrets-store]
+    SPC -->|Mirror Secret| K8sSecret[Kubernetes Secret]
+    K8sSecret -->|Inject| EnvVar[Environment Variables]
+```
+
+1. **SecretProviderClass**: Configured per service in [manifests/](file:///c:/Users/Praveen/Desktop/New%20folder/Infra/manifests). It specifies the Azure Key Vault name and maps key vault secrets to local files.
+2. **CSI Mount**: When a pod starts, the Secrets Store CSI driver connects to Key Vault, fetches secrets, and mounts them as text files at `/mnt/secrets-store/<secret-alias>` inside the container.
+3. **Environment Injection**: The driver synchronizes these values into standard Kubernetes Secrets, which are then injected into container runtime environments as environment variables (e.g. `JWT_SECRET_KEY`, `MONGO_URI`, `OPENAI_API_KEY`).
+
+---
+
+## 4. Azure Workload Identity (OIDC Federated Credentials)
+
+Rather than storing long-lived service principal client secrets inside the cluster, pods authenticate to Azure using **Workload Identity** (passwordless federation):
+
+1. **OIDC Issuer**: AKS acts as an OpenID Connect (OIDC) token issuer. It signs temporary JSON Web Tokens generated for pod Service Accounts.
+2. **User-Assigned Managed Identity**: A managed identity (`akspraveen-uami`) is granted the `Key Vault Secrets User` role on Key Vault `kv-archgen-dev` / `kv-archgen-prod`.
+3. **Federated Credentials**: Federated credential links associate the managed identity with the Kubernetes Service Account subject:
+   - Dev Subject: `system:serviceaccount:dev:archgen-dev-auth-service-sa`
+   - Prod Subject: `system:serviceaccount:prod:archgen-prod-auth-service-sa`
+4. **Token Exchange**: On pod startup, the workload identity webhook injects OIDC token paths. The Azure SDK exchange this temporary token for an access token to fetch secrets securely.
+
+---
+
+## 5. GitOps Delivery Pipeline (ArgoCD)
+
+Deployment delivery follows the GitOps pattern managed by ArgoCD. Desired cluster states are defined declaratively in Git and synchronized automatically:
+
+* **Dev ArgoCD App** ([dev-application.yaml](file:///c:/Users/Praveen/Desktop/New%20folder/Infra/argocd/dev-application.yaml)):
+  - Source Path: `manifests/dev`
+  - Target Namespace: `dev`
+  - Tracks Repository Branch: `dev`
+* **Prod ArgoCD App** ([prod-application.yaml](file:///c:/Users/Praveen/Desktop/New%20folder/Infra/argocd/prod-application.yaml)):
+  - Source Path: `manifests/prod`
+  - Target Namespace: `prod`
+  - Tracks Repository Branch: `master`
+* **Drift Detection**: ArgoCD compares the active cluster resources with Git definitions. If a resource configuration is changed manually in the cluster, ArgoCD flags it as `OutOfSync` and reconciles it to match Git configuration.
