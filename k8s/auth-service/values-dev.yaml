@@ -2,7 +2,7 @@ replicaCount: 2
 image:
   repository: acrarchgen.azurecr.io/auth-service
   pullPolicy: IfNotPresent
-  tag: "sha-5168ebc"
+  tag: "sha-ce254b3"
 service:
   type: ClusterIP
   port: 8001
