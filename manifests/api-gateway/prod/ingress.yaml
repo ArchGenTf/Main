@@ -1,0 +1,68 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: prod
+  name: archgen-prod-ingress
+  labels:
+    app: unified-ingress
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway
+    appgw.ingress.kubernetes.io/request-timeout: "300"
+    appgw.ingress.kubernetes.io/connection-draining: "true"
+    appgw.ingress.kubernetes.io/connection-draining-timeout: "30"
+spec:
+  rules:
+    - host: prod.printnow.space
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: archgen-prod-api-gateway
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: archgen-prod-frontend
+                port:
+                  number: 80
+    - host: printnow.space
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: archgen-prod-api-gateway
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: archgen-prod-frontend
+                port:
+                  number: 80
+    - host: www.printnow.space
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: archgen-prod-frontend
+                port:
+                  number: 80
+    - host: api.printnow.space
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: archgen-prod-api-gateway
+                port:
+                  number: 8080
